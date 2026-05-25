@@ -1,0 +1,52 @@
+# ─────────────────────────────────────────────────────────────────────────────
+#  Horizontal Scaling Lab — Docker Compose
+#
+#  Usage:
+#    docker compose up --scale web=3 --build   ← 3 web containers + NGINX LB
+#    docker compose up --scale web=5 --build   ← scale to 5 on the fly
+#    docker compose down                        ← teardown
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+
+  # ── Web Application (Node.js / Express) ─────────────────────────────────
+  web:
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    # No host port mapping — containers are ONLY accessible via NGINX.
+    # This is intentional: the load balancer is the single entry point.
+    expose:
+      - "3000"
+    environment:
+      - PORT=3000
+      - NODE_ENV=production
+    networks:
+      - app_net
+    # Let Docker decide restarts — keeps instances alive during experiments
+    restart: unless-stopped
+    # Limit resources so each "fake" instance feels realistic
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 128M
+
+  # ── NGINX Load Balancer ───────────────────────────────────────────────────
+  nginx:
+    image: nginx:1.25-alpine
+    ports:
+      - "8080:80"          # Browse → http://localhost:8080
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - web
+    networks:
+      - app_net
+    restart: unless-stopped
+
+# ── Shared Network ────────────────────────────────────────────────────────────
+# All containers on this network can resolve each other by service name.
+networks:
+  app_net:
+    driver: bridge
