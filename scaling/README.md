@@ -135,3 +135,6 @@ docker compose restart nginx
 | Load balancer | NGINX distributes requests via Round Robin |
 | Service discovery | Docker resolves `web` hostname to all container IPs |
 | Health check | `GET /health` endpoint per container |
+
+
+Round robin, Least connection and consistent hashing algorithms in load balancer 
